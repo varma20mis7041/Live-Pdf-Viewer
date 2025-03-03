@@ -1,17 +1,47 @@
-import { useState } from "react";
+import { useState ,useLayoutEffect, useEffect } from "react";
 import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
 import { GoPlusCircle } from "react-icons/go";
 import GetStarted from "./getstarted";
 import { Navigate, useNavigate } from "react-router-dom";
-const NavBar = ({ getPdf }) => {
+
+import io from 'socket.io-client'
+
+const socket = io.connect("http://localhost:9000")
+
+const NavBar = ({ getPdf, isPresenting }) => {
+  const role = localStorage.getItem("role");
+  console.log("is presenting",isPresenting)
   const [isAddNew, setAddNew] = useState(false); // Corrected useState syntax
   const [title, setTitle] = useState("");
   const [file, setFile] = useState(null);
-
+  const navigate = useNavigate();
   
   const userDetails = JSON.parse(localStorage.getItem("userDetails"));
 
+  const [isViewCount,updateIsViewCountStatus] = useState(false);
+  const [currentViewers,updateCurrentViewers] = useState([]);
+
+
+useEffect(() => {
+ // console.log("user details", userDetails);
+  if (!userDetails) {
+    navigate("/get-started");
+  }
+}, []);
+
+
+useEffect(()=>{
+ if(role === "admin"){
+  socket.on("updated-active-users",(allActiveAdmins)=>{
+    const adminActiveusers = allActiveAdmins.find((eachAdmin)=> eachAdmin[0] === userDetails.userName);
+    console.log("adminsActiveUsers",adminActiveusers);
+    if(adminActiveusers){
+      updateCurrentViewers(adminActiveusers[1]);
+    }
+  })
+ }
+})
 
 
   const submitImage = async (e) => {
@@ -37,7 +67,10 @@ const NavBar = ({ getPdf }) => {
 
       if (result.data.status === "ok") {
        
-        if (getPdf) getPdf(); // Call getPdf if it's passed as a prop
+        if (getPdf){
+          socket.emit("new-pdf-added")
+          getPdf();
+        } 
       }
     } catch (error) {
       console.error("Network error:", error);
@@ -45,20 +78,47 @@ const NavBar = ({ getPdf }) => {
     }
     setAddNew(false)
   };
-  const role = localStorage.getItem("role");
-  const navigate = useNavigate();
+  
+
    const start = () => {
     localStorage.removeItem("role");
     localStorage.removeItem("userDetails");
-    navigate("/get-started")
+    navigate("/get-started");
    }
+
+   const [isDisplayViewers,updateDisplayViewersStatus] = useState(false);
+
+const onClickViewActiveUsers = () => {
+  if(currentViewers.length > 0){
+    updateDisplayViewersStatus(!isDisplayViewers);
+  }
+}
+
   return (
     <>
     <div className="h-[6vh] w-full bg-teal-800 flex items-center justify-between px-10 text-white">
       <h1>Pdf co-viewer</h1>
 
-      <h1>{userDetails.name}</h1>
+      <h1>{userDetails?.name}</h1>
       <div className="flex items-center">
+      {isPresenting && (
+        <div className="relative  flex justify-center">
+        <button className="bg-blue-500 px-3 rounded h-[30px] flex items-center mr-5" onClick={onClickViewActiveUsers}>{currentViewers.length} viewing</button>
+        {isDisplayViewers && (
+          <div className="absolute right-10  mt-10 bg-teal-800  rounded shadow-lg w-24 p-0 list-none">
+         {currentViewers.map((eachViewer, index) => (
+            <div key={index}>
+              <p className="text-center px-2">{eachViewer}</p>
+              {index !== currentViewers.length - 1 && <hr />}
+            </div>
+          ))}
+
+        </div>
+        
+        )}
+        </div>
+        
+      )}
       {role === "admin" && (<button className="bg-blue-500 px-3 rounded h-[30px] flex items-center mr-5 " onClick={() => setAddNew(true)}>
       <span><GoPlusCircle /></span> Add Pdf
       </button>

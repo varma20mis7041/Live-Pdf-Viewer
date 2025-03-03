@@ -3,55 +3,51 @@ import { Document, Page } from 'react-pdf';
 
 
 import { GrFormNext, GrFormPrevious } from "react-icons/gr";
-import { MdOutlineNavigateNext } from "react-icons/md";
 import io from 'socket.io-client'
 
 const socket = io.connect("http://localhost:9000")
 
 
 function PdfComp(props) {
-  const {onChangeGetIndex} = props;
+  const {adminDetails} = props;
+ // console.log("current active admin",adminDetails)
+  const role = localStorage.getItem("role");
+  let adminId;
+  let pdfIndex;
+  if(role === "admin"){
+     adminId = adminDetails[0]
+     pdfIndex = adminDetails[1].pdfIndex;
+  }
+  
   const [numPages, setNumPages] = useState();
   const [pageNumber, setPageNumber] = useState(1);
 
   function onDocumentLoadSuccess({numPages}) {
     setNumPages(numPages);
   }
-const role = localStorage.getItem("role");
+
   const prev = () => {
     if(pageNumber >1){
-      setPageNumber(pageNumber-1)
-      socket.emit("page", { message: pageNumber-1 });
+      setPageNumber((prevPageNumber)=>prevPageNumber-1)
+      socket.emit("admin", { adminId , index : pdfIndex , page : pageNumber-1});
     }
   }
   
 
   const next = () => {
     console.log("Next button clicked");
-   
     if (pageNumber < numPages) {
-
-      setPageNumber(pageNumber + 1);
-      socket.emit("page", { message: pageNumber+1 });
+      setPageNumber((prevPageNumber)=>prevPageNumber+1);
+      socket.emit("admin", { adminId , index : pdfIndex , page : pageNumber+1});
     }
   };
   
-
-useEffect(()=>{
-  socket.on("currentpage",(data)=>{
-  console.log("data in client",data)
-  setPageNumber(data.message)
+  useEffect(()=>{
+    if(adminDetails){
+      setPageNumber(adminDetails[1].pageNumber)
+    }
   })
-},[socket])
 
-useEffect(()=>{
-  // if(pageNumber>numPages || pageNumber<numPages){
-  //   onChangeGetIndex(1);
-  // }else{
-    onChangeGetIndex(pageNumber)
-  // }
-
-},[pageNumber])
 
   return (
     <div className='w-[30vw] h-[80vh] mt-2 flex flex-col items-center'>

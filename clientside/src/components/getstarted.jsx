@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import io from 'socket.io-client'
+const socket = io.connect("http://localhost:9000");
 const flow = {
     get_started: "GET STARTED",
     admin_login: "ADMIN LOGIN",
@@ -35,7 +36,8 @@ const GetStarted = () => {
             console.log(userDetails)
             localStorage.setItem("userDetails", JSON.stringify(userDetails));
             const role = "admin"
-            localStorage.setItem("role",role)
+            localStorage.setItem("role",role);
+            socket.emit("new-admin-added")
             navigate("/"); 
         } catch (err) {
             setError(err.response ? err.response.data.message : 'Registration failed');
@@ -56,6 +58,7 @@ const GetStarted = () => {
             localStorage.setItem("userDetails", JSON.stringify(userDetails));
             const role = "admin"
             localStorage.setItem("role",role)
+            socket.emit("new-admin-added")
             navigate("/"); 
         } catch (err) {
             setError(err.response ? err.response.data.message : 'Login failed');
