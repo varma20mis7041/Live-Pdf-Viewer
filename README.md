@@ -14,6 +14,7 @@
    - Open a new terminal, navigate to the client directory: `cd client`
    - Install the dependencies: `npm install`
    - Start the frontend application: `npm start`
+     
 
 
 
